@@ -8,7 +8,6 @@ import edu.upc.epsevg.prop.amazons.Move;
 import edu.upc.epsevg.prop.amazons.SearchType;
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  *
@@ -58,28 +57,22 @@ public class MirimariPlayer implements IPlayer, IAuto {
         
       //  this.s = s;
        
-        Point amazonFrom = new Point(0,0)
-                , amazonTo = new Point(0,0)
-                , arrowTo = new Point(0,0)
-                , arrow = new Point(0,0);
+        Point amazonFrom = null
+                , amazonTo = null
+                , arrowTo = null
+                , arrow = null; 
         
         float aux;
         float heurist = Float.MIN_VALUE; // -inifinito
         float beta = Float.MAX_VALUE; // +infinito
        
         CellType color = s.getCurrentPlayer();
-        int qn = s.getNumberOfAmazonsForEachColor();
-        //Obtenim les posicions de les nostres amazones 
-        ArrayList<Point> pendingAmazons = new ArrayList<>();
-        for (int q = 0; q < qn; q++) {
-            pendingAmazons.add(s.getAmazon(color, q));
-        }
-       
+
      //   while(!timeout){
             ArrayList<Point> amazonPositions = new ArrayList<>();
-            for (int i=0; i < pendingAmazons.size(); ++i) { // per a cada amazona mirem quin moviment és millor
-
-                Point amazona = pendingAmazons.get(i);
+            for (int i=0; i < s.getNumberOfAmazonsForEachColor(); ++i) { // per a cada amazona mirem quin moviment és millor
+                if(timeout) break;
+                Point amazona = s.getAmazon(color, i);
                // System.out.println("ENTRA DIFERENT AMAZONA" + amazona);
                 amazonPositions = s.getAmazonMoves(amazona, false); //preguntar pel BOOLEÀ
 
@@ -88,6 +81,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
                 //Recorrem el tauler per a guardar les posicions lliures
                 ArrayList<Point> emptyPositions = new ArrayList<>();
                 for (int m = 0; m < s.getSize(); ++m){
+                    if(timeout) break;
                     for (int n = 0; n < s.getSize(); ++n){
                         if(s.getPos(m, n) == CellType.EMPTY){
                              Point buida = new Point(m, n);
@@ -100,7 +94,8 @@ public class MirimariPlayer implements IPlayer, IAuto {
 
 
                 for (int x = 0; x < amazonPositions.size(); ++x) {
-                   // System.out.println("Posicio possible moviment" + amazonPositions.get(x));
+                   if(timeout)   break;
+                    // System.out.println("Posicio possible moviment" + amazonPositions.get(x));
                     Point possibleMoviment = amazonPositions.get(x);
                     // "s" és una còpia del tauler, per tant es pot manipular sense perill
                     GameStatus tauler = new GameStatus(s);          
@@ -112,7 +107,8 @@ public class MirimariPlayer implements IPlayer, IAuto {
 
                     //Recorrem totes les posicions lliures del tauler per escollir el millor moviment de la fletxa
                     for(int j = 0; j < empty.size(); ++j){
-                       // System.out.println("Posicions lliures" + empty.size());
+                       if(timeout)  break;
+                        // System.out.println("Posicions lliures" + empty.size());
                         arrow = empty.get(j);
                         GameStatus tauler_aux = new GameStatus(tauler);
                         tauler_aux.placeArrow(arrow);
@@ -137,13 +133,13 @@ public class MirimariPlayer implements IPlayer, IAuto {
             }
 //        }
 
-        return new Move(amazonFrom, amazonTo, arrowTo, nodes_explorats, 0, SearchType.MINIMAX);
+        return new Move(amazonFrom, amazonTo, arrowTo, nodes_explorats, max_prof, SearchType.MINIMAX);
     }
 
     public float max_v(GameStatus estat, ArrayList<Point> emptyPositions, CellType color, float alfa, float beta, int profunditat) {
         float valor = 0;
         
-        if ( (estat.isGameOver()) || timeout || estat.getEmptyCellsCount() == 0 ) {
+        if ( (estat.isGameOver()) || estat.getEmptyCellsCount() == 0 || !timeout ) {
            // System.out.println("GAMEOVER");
             if ( estat.isGameOver() && estat.GetWinner() == color ) valor = Float.MAX_VALUE;
             else if( estat.isGameOver() && estat.GetWinner() == color.opposite(color) ) valor = Float.MIN_VALUE;
@@ -160,16 +156,10 @@ public class MirimariPlayer implements IPlayer, IAuto {
             return valor;
         }
         
-        int qn = estat.getNumberOfAmazonsForEachColor();
-        //Obtenim les posicions de les amazones 
-        ArrayList<Point> pendingAmazons = new ArrayList<>();
-        for (int q = 0; q < qn; q++) {
-            pendingAmazons.add(estat.getAmazon(color, q));
-        }
-        
         ArrayList<Point> amazonPositions = new ArrayList<>();
-        for (int i=0; i < pendingAmazons.size(); ++i) { // per a cada fitxa mirem quin moviment és millor
-            Point amazona = pendingAmazons.get(i);
+        for (int i=0; i < estat.getNumberOfAmazonsForEachColor(); ++i) { // per a cada fitxa mirem quin moviment és millor
+            if(timeout) break;
+            Point amazona = estat.getAmazon(color, i);
             //Si l'amazona no té més possibles moviments
             if (estat.getAmazonMoves(amazona, false).isEmpty()) {
                 valor = Float.MIN_VALUE;      
@@ -189,6 +179,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
                 emptyPos.add(amazona);
 
                 for (int x = 0; x < amazonPositions.size(); ++x) {
+                    if(timeout) break;
                     Point possibleMoviment = amazonPositions.get(x);
                     // "s" és una còpia del tauler, per tant es pot manipular sense perill
                     GameStatus tauler = new GameStatus(estat);          
@@ -199,6 +190,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
                     empty.remove(possibleMoviment);
 
                     for(int j = 0; j < empty.size(); ++j){
+                        if(timeout) break;
                         Point arrow = empty.get(j);
                         GameStatus tauler_aux = new GameStatus(tauler);
                         tauler_aux.placeArrow(arrow);
@@ -219,7 +211,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
     public float min_v(GameStatus estat, ArrayList<Point> emptyPositions, CellType color, float alfa, float beta, int profunditat) {
         float valor = 0; //me pedia inicializar la variable
        // System.out.println("ENTRA");
-        if ( (estat.isGameOver()) || timeout || estat.getEmptyCellsCount() == 0 ) {
+        if ( (estat.isGameOver()) || estat.getEmptyCellsCount() == 0 || !timeout ) {
           //  System.out.println("GAMEOVER");
             if ( estat.isGameOver() && estat.GetWinner() == color ) valor = Float.MIN_VALUE;
             else if( estat.isGameOver() && estat.GetWinner() == color.opposite(color) ) valor = Float.MAX_VALUE;
@@ -236,19 +228,11 @@ public class MirimariPlayer implements IPlayer, IAuto {
            
             return valor;
         } 
-        
-       // System.out.println("ARRIBA");
-        int qn = estat.getNumberOfAmazonsForEachColor();
-        //Obtenim les posicions de les amazones 
-        ArrayList<Point> pendingAmazons = new ArrayList<>();
-        for (int q = 0; q < qn; q++) {
-            pendingAmazons.add(estat.getAmazon(color, q));
-        }
-        
+       
         ArrayList<Point> amazonPositions = new ArrayList<>();
-        for (int i=0; i < pendingAmazons.size(); ++i) { // per a cada fitxa mirem quin moviment és millor
-            
-            Point amazona = pendingAmazons.get(i);
+        for (int i=0; i < estat.getNumberOfAmazonsForEachColor(); ++i) { // per a cada fitxa mirem quin moviment és millor
+            if(timeout)    break;
+            Point amazona = estat.getAmazon(color, i);
            // System.out.println("ARRIBA 2" + amazona);
             //Si l'amazona no té més possibles moviments
             if (estat.getAmazonMoves(amazona, true).isEmpty()) {
@@ -270,6 +254,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
                 emptyPos.add(amazona);
 
                 for (int x = 0; x < amazonPositions.size(); ++x) {
+                    if(timeout) break;
                     Point possibleMoviment = amazonPositions.get(x);
                     // "s" és una còpia del tauler, per tant es pot manipular sense perill
                     GameStatus tauler = new GameStatus(estat);          
@@ -280,6 +265,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
                     empty.remove(possibleMoviment);
 
                     for(int j = 0; j < empty.size(); ++j){
+                        if(timeout) break;
                         Point arrow = empty.get(j);
                         GameStatus tauler_aux = new GameStatus(tauler);
                         tauler_aux.placeArrow(arrow);
@@ -299,30 +285,24 @@ public class MirimariPlayer implements IPlayer, IAuto {
     
     //Heurística simple
     public float heuristica(GameStatus estat, CellType color){
-       // System.err.println("ENTRA HEURISTICA");
         int jo = 0;
         int contrari = 0;
         
         int qn = estat.getNumberOfAmazonsForEachColor();
-        //Obtenim les posicions de les amazones 
-        ArrayList<Point> pendingAmazonsMe = new ArrayList<>();
-        for (int q = 0; q < qn; q++) {
-            pendingAmazonsMe.add(estat.getAmazon(color, q));
+        
+        for(int i = 0; i < qn; ++i){
+            Point amazona = estat.getAmazon(color, i);
+            jo += estat.getAmazonMoves(amazona, true).size();
         }
-        ArrayList<Point> pendingAmazonsContrari = new ArrayList<>();
-        for (int q = 0; q < qn; q++) {
-            pendingAmazonsContrari.add(estat.getAmazon(color.opposite(color), q));
-        }
-        for(int i = 0; i < pendingAmazonsMe.size(); ++i){
-            jo += estat.getAmazonMoves(pendingAmazonsMe.get(i), true).size();
-        }
-        for(int i = 0; i < pendingAmazonsContrari.size(); ++i){
-            contrari += estat.getAmazonMoves(pendingAmazonsContrari.get(i), true).size();
+        for(int i = 0; i < qn; ++i){
+            Point amazona = estat.getAmazon(color.opposite(color), i);
+            int mov = estat.getAmazonMoves(amazona, false).size();
+            contrari += mov;
+            if(mov < 3) contrari -= 10000;
+            if(mov == 0)    contrari -= 100000;
         }
         
         return jo - contrari; 
-      // Random rand = new Random();
-      // return rand.nextFloat();
     }
 }
 
