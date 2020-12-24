@@ -291,7 +291,7 @@ public class MirimariPlayer implements IPlayer, IAuto {
                     if (timeout) break;
                     Point possibleMoviment = amazonPositions.get(x);
                     GameStatus tauler = new GameStatus(estat);
-                    tauler.moveAmazon(amazona, possibleMoviment); // mou la fitxa
+                    tauler.moveAmazon(amazona, possibleMoviment); //mou la fitxa
                     
                     //Afegim tots els possibles moviments de les amazones contraries a la llista
                     ArrayList<Point> emptyContraries = new ArrayList<>();
